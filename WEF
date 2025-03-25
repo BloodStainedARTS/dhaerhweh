@@ -1,0 +1,187 @@
+import random
+import time
+
+class Player:
+    def __init__(self):
+        self.body_temp = 37.0  # Normal body temperature in Celsius
+        self.stamina = 100  # Stamina starts full
+        self.is_wet = False
+        self.wetness_level = 0  # 0 = dry, 100 = fully soaked
+        self.is_indoors = False
+        self.is_near_fire = False
+        self.is_wearing_gloves = False
+        self.is_wearing_boots = False
+        self.inventory = []  # Stores collected weapons and items
+        self.health = 100  # Health starts full
+        self.blood_loss = 0  # Blood loss starts at 0
+        self.location = None  # Player's current location
+
+    def check_wetness(self, is_raining, is_swimming):
+        """Check for wetness status based on environment"""
+        if is_raining or is_swimming:
+            self.wetness_level += 5  # Getting wetter over time
+            if self.wetness_level > 50:
+                self.is_wet = True  # Player is now soaked
+
+    def dry_off(self):
+        """Player dries off if near fire or in warm weather"""
+        if self.is_near_fire:
+            self.wetness_level -= 10
+            if self.wetness_level <= 0:
+                self.is_wet = False  # Fully dry
+
+    def update_body_temperature(self, temperature, wind_speed):
+        """Update body temperature based on environment and wind chill"""
+        wind_chill = temperature - (wind_speed * 0.2) if not self.is_indoors else temperature
+        if self.is_wet:
+            self.body_temp -= 0.2  # Wetness causes faster heat loss
+        if wind_chill < 0:
+            self.body_temp -= 0.1  # Cold environment lowers body temp
+        if self.is_near_fire:
+            self.body_temp += 0.5  # Being near fire increases warmth
+
+        # Frostbite check
+        self.frostbite.check_frostbite(wind_chill, self.is_wearing_gloves, self.is_wearing_boots)
+
+    def lose_health(self, amount):
+        """Health decreases due to injuries or other factors"""
+        self.health -= amount
+        if self.health < 0:
+            self.health = 0  # Health can't go below 0
+        print(f"Health decreased! Current health: {self.health}%")
+    
+    def gain_health(self, amount):
+        """Health increases through medical supplies or rest"""
+        self.health += amount
+        if self.health > 100:
+            self.health = 100  # Health can't exceed 100%
+        print(f"Health restored! Current health: {self.health}%")
+
+    def collect_weapon(self, weapon):
+        """Add weapon to inventory"""
+        self.inventory.append(weapon)
+
+    def collect_item(self, item):
+        """Add item to inventory"""
+        self.inventory.append(item)
+        print(f"Collected {item.name}")
+
+    def move_to(self, location):
+        """Player moves to a new location"""
+        self.location = location
+        print(f"Player moved to {location.name}")
+        if location.is_sheltered:
+            self.is_indoors = True
+        else:
+            self.is_indoors = False
+
+    def sleep(self):
+        """Player sleeps to regain stamina"""
+        self.stamina = 100  # Fully restore stamina after sleep
+        print("You have rested and regained full stamina!")
+
+    def search_furniture(self, furniture):
+        """Search through furniture for items"""
+        if furniture.is_locked:
+            print(f"The {furniture.name} is locked!")
+        else:
+            found_items = furniture.open()
+            for item in found_items:
+                self.collect_item(item)
+
+    def unlock_door(self, door):
+        """Unlock doors with a key"""
+        if "Key" in [item.name for item in self.inventory]:
+            door.is_locked = False
+            print("Door unlocked!")
+        else:
+            print("You need a key to unlock this door.")
+
+    def restrain_player(self, target_player, restraint):
+        """Restraining an enemy or another player"""
+        if restraint in self.inventory:
+            target_player.is_restrained = True
+            self.inventory.remove(restraint)
+            print(f"{target_player} has been restrained with {restraint}.")
+        else:
+            print(f"You don't have {restraint}.")
+
+class Frostbite:
+    def __init__(self):
+        self.fingers = 100  # Health of fingers (100 = healthy)
+        self.toes = 100  # Health of toes
+        self.status = "Normal"
+
+    def check_frostbite(self, temperature, has_gloves, has_boots):
+        """Check for frostbite on fingers/toes"""
+        if temperature < -5 and not has_gloves:
+            self.fingers -= 0.5
+        if temperature < -10 and not has_boots:
+            self.toes -= 0.5
+
+        if self.fingers <= 50:
+            self.status = "Numb Fingers"  # Reduced accuracy
+        if self.fingers <= 0:
+            self.status = "Lost Fingers"  # Permanent damage
+
+        if self.toes <= 50:
+            self.status = "Frostbitten Toes"  # Movement slowed
+        if self.toes <= 0:
+            self.status = "Lost Toes"  # Permanent movement penalty
+
+class Weather:
+    def __init__(self):
+        self.temperature = random.randint(-20, 40)  # Seasonal temperature range
+        self.wind_speed = random.randint(0, 30)  # Wind speed in km/h
+        self.is_raining = random.choice([True, False])
+        self.is_daytime = True  # Day or night
+        self.humidity = random.randint(0, 100)  # Percentage of humidity
+
+    def check_weather_warnings(self):
+        """Check for weather warnings based on conditions"""
+        if self.wind_speed > 25:
+            return "⚠ Strong Winds Incoming!"
+        if self.temperature < -10:
+            return "❄ Blizzard Warning! Find Shelter!"
+        if self.temperature > 38:
+            return "🔥 Heatwave Alert! Stay Hydrated!"
+        return "Weather Stable"
+
+    def change_day_night_cycle(self):
+        """Switch between day and night, affecting visibility and stamina"""
+        self.is_daytime = not self.is_daytime
+        print("The day is turning to night!" if not self.is_daytime else "The night is turning to day!")
+
+class Item:
+    def __init__(self, name):
+        self.name = name
+
+class Campfire:
+    def __init__(self):
+        self.is_lit = False
+        self.heat_radius = 5  # Distance fire warms player
+
+    def light_fire(self, has_wood, has_lighter):
+        """Start a campfire if player has wood and a lighter"""
+        if has_wood and has_lighter:
+            self.is_lit = True
+
+    def provide_warmth(self, player):
+        """Warm the player if they're close to the campfire"""
+        if self.is_lit and player.distance_to_fire < self.heat_radius:
+            player.body_temp += 0.5  # Warms the player
+
+# Initialize game world
+player = Player()
+weather = Weather()
+campfire = Campfire()
+
+# Example game loop (basic simulation)
+print("Starting the game!")
+time.sleep(2)
+
+# Simulate movement and health updates
+weather.change_day_night_cycle()
+player.update_body_temperature(weather.temperature, weather.wind_speed)
+print(f"Player health: {player.health}, Stamina: {player.stamina}")
+

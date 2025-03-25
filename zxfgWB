@@ -1,0 +1,164 @@
+import random
+import time
+
+class Player:
+    def __init__(self):
+        self.body_temp = 37.0  # Normal body temperature in Celsius
+        self.stamina = 100  # Stamina starts full
+        self.is_wet = False
+        self.wetness_level = 0  # 0 = dry, 100 = fully soaked
+        self.is_indoors = False
+        self.is_near_fire = False
+        self.is_wearing_gloves = False
+        self.is_wearing_boots = False
+        self.inventory = []  # Stores collected weapons and items
+        self.health = 100  # Health starts full
+        self.blood_loss = 0  # Blood loss starts at 0
+        self.nausea_level = 0  # 0 = No nausea, 100 = severe nausea
+        self.headache_level = 0  # 0 = No headache, 100 = severe headache
+        self.location = None  # Player's current location
+
+    def collect_item(self, item):
+        """Add item to inventory"""
+        self.inventory.append(item)
+        print(f"Collected {item.name}")
+
+    def use_medical_item(self, item):
+        """Use a medical item"""
+        if item in self.inventory:
+            item.use(self)
+            self.inventory.remove(item)
+            print(f"Used {item.name}")
+        else:
+            print(f"{item.name} is not in your inventory.")
+
+    def heal(self, amount):
+        """Increase health by a specified amount."""
+        self.health += amount
+        if self.health > 100:
+            self.health = 100  # Health can't exceed 100%
+        print(f"Health increased! Current health: {self.health}%")
+
+    def take_damage(self, amount):
+        """Decrease health by a specified amount."""
+        self.health -= amount
+        if self.health < 0:
+            self.health = 0
+        print(f"Health decreased! Current health: {self.health}%")
+
+    def increase_nausea(self, amount):
+        """Increase nausea level."""
+        self.nausea_level += amount
+        if self.nausea_level > 100:
+            self.nausea_level = 100
+        print(f"Nausea level: {self.nausea_level}%")
+
+    def increase_headache(self, amount):
+        """Increase headache level."""
+        self.headache_level += amount
+        if self.headache_level > 100:
+            self.headache_level = 100
+        print(f"Headache level: {self.headache_level}%")
+
+    def clear_nausea(self):
+        """Clear nausea."""
+        self.nausea_level = 0
+        print("Nausea cleared.")
+
+    def clear_headache(self):
+        """Clear headache."""
+        self.headache_level = 0
+        print("Headache cleared.")
+
+    def update_stamina(self):
+        """Update stamina based on nausea or headache."""
+        if self.nausea_level > 50:
+            self.stamina -= 10  # Nausea decreases stamina
+        if self.headache_level > 50:
+            self.stamina -= 5  # Headache decreases stamina
+        if self.stamina < 0:
+            self.stamina = 0
+        print(f"Stamina level: {self.stamina}%")
+
+    def is_sick(self):
+        """Determine if the player is sick based on nausea or headache."""
+        if self.nausea_level > 75 or self.headache_level > 75:
+            return True
+        return False
+
+
+class Item:
+    def __init__(self, name):
+        self.name = name
+
+class MedicalItem(Item):
+    def __init__(self, name, effect):
+        super().__init__(name)
+        self.effect = effect
+
+    def use(self, player):
+        """Use the medical item to affect the player's health."""
+        print(f"Using {self.name}...")
+        player.heal(self.effect)
+
+class Painkillers(MedicalItem):
+    def __init__(self):
+        super().__init__("Painkillers", 10)
+
+    def use(self, player):
+        """Use painkillers to relieve pain and increase health temporarily."""
+        super().use(player)
+        player.increase_headache(15)  # Taking painkillers can cause headaches if overused
+        print("You took painkillers. Pain reduced, but headache may follow.")
+
+class Morphine(MedicalItem):
+    def __init__(self):
+        super().__init__("Morphine", 25)
+
+    def use(self, player):
+        """Use morphine for severe pain relief."""
+        super().use(player)
+        player.increase_headache(25)  # Morphine can cause severe headaches if used too often
+        print("You injected morphine for extreme pain relief.")
+
+class DehydrationItem(Item):
+    def __init__(self):
+        super().__init__("Water Bottle")
+
+    def use(self, player):
+        """Drink water to hydrate and reduce nausea and headaches caused by dehydration."""
+        print(f"You drink water to reduce nausea and headaches.")
+        player.clear_nausea()
+        player.clear_headache()
+
+
+# Initialize a bunch of medical items
+items = [
+    Painkillers(), Morphine(), DehydrationItem()
+]
+
+# Create a player
+player = Player()
+
+# Player collects some medical items
+for item in items:
+    player.collect_item(item)
+
+# Simulate some events
+print("\nSimulating Nausea and Headache Effects:")
+
+# Simulate using painkillers too often
+player.use_medical_item(Painkillers())
+player.update_stamina()
+
+# Simulate dehydration and nausea
+player.increase_nausea(60)
+player.update_stamina()
+
+# Simulate using water to hydrate
+player.use_medical_item(DehydrationItem())
+player.update_stamina()
+
+# Simulate using morphine and getting a headache
+player.use_medical_item(Morphine())
+player.update_stamina()

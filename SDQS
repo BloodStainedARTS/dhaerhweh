@@ -1,0 +1,190 @@
+import random
+import time
+
+class Player:
+    def __init__(self):
+        self.body_temp = 37.0  # Normal body temperature in Celsius
+        self.stamina = 100  # Stamina starts full
+        self.is_wet = False
+        self.wetness_level = 0  # 0 = dry, 100 = fully soaked
+        self.is_indoors = False
+        self.is_near_fire = False
+        self.is_wearing_gloves = False
+        self.is_wearing_boots = False
+        self.inventory = []  # Stores collected weapons and items
+        self.health = 100  # Health starts full
+        self.blood_loss = 0  # Blood loss starts at 0
+        self.nausea_level = 0  # 0 = No nausea, 100 = severe nausea
+        self.headache_level = 0  # 0 = No headache, 100 = severe headache
+        self.hunger_level = 0  # 0 = Not hungry, 100 = Very hungry
+        self.thirst_level = 0  # 0 = Not thirsty, 100 = Very thirsty
+        self.fatigue_level = 0  # 0 = Rested, 100 = Extremely tired
+        self.mental_health = 100  # 0 = Mentally unwell, 100 = Mentally stable
+        self.location = None  # Player's current location
+        self.is_infected = False  # Infection status
+        self.is_dehydrated = False
+        self.is_starving = False
+        self.sick = False
+
+    def update_stamina(self):
+        """Update stamina based on conditions like hunger, dehydration, and fatigue."""
+        if self.hunger_level > 70:
+            self.stamina -= 15  # Hungry players have reduced stamina
+        if self.thirst_level > 70:
+            self.stamina -= 20  # Thirsty players have reduced stamina
+        if self.fatigue_level > 70:
+            self.stamina -= 25  # Tired players have reduced stamina
+        if self.mental_health < 50:
+            self.stamina -= 10  # Mental distress reduces stamina
+
+        if self.stamina < 0:
+            self.stamina = 0
+        print(f"Stamina level: {self.stamina}%")
+
+    def decrease_health(self, amount):
+        """Decrease health due to injury, infection, or other factors."""
+        self.health -= amount
+        if self.health < 0:
+            self.health = 0
+        print(f"Health decreased: {self.health}%")
+        if self.health == 0:
+            print("You have died.")
+            # Game over mechanic
+
+    def eat(self, food_item):
+        """Eat food to recover hunger."""
+        if food_item in self.inventory:
+            print(f"Eating {food_item.name}...")
+            self.hunger_level -= 20  # Food decreases hunger
+            self.update_stamina()
+            self.inventory.remove(food_item)
+        else:
+            print("You don't have that food item.")
+
+    def drink(self, water_item):
+        """Drink water to hydrate."""
+        if water_item in self.inventory:
+            print(f"Drinking {water_item.name}...")
+            self.thirst_level -= 30  # Water decreases thirst
+            self.is_dehydrated = False
+            self.update_stamina()
+            self.inventory.remove(water_item)
+        else:
+            print("You don't have that water item.")
+
+    def sleep(self, hours):
+        """Sleep to regain stamina and heal."""
+        print(f"Sleeping for {hours} hours...")
+        self.fatigue_level -= 25 * hours  # Each hour of sleep reduces fatigue
+        if self.fatigue_level < 0:
+            self.fatigue_level = 0
+        self.update_stamina()
+
+    def check_infection(self):
+        """Check for signs of infection based on wounds."""
+        if self.is_infected:
+            self.health -= 5
+            self.sick = True
+            print("You are infected! Health is decreasing.")
+
+    def rest(self):
+        """Rest to regain stamina and improve mental health."""
+        print("Resting for a while...")
+        self.fatigue_level -= 25  # Rest improves fatigue
+        self.mental_health += 5  # Rest boosts mental health
+        if self.fatigue_level < 0:
+            self.fatigue_level = 0
+        if self.mental_health > 100:
+            self.mental_health = 100
+        self.update_stamina()
+
+    def add_headache(self, severity):
+        """Add headache effect to player."""
+        self.headache_level += severity
+        print(f"Headache severity: {self.headache_level}%")
+        if self.headache_level > 50:
+            self.stamina -= 10  # Headaches reduce stamina
+            print("You have a headache that is affecting your performance.")
+        if self.headache_level >= 100:
+            print("You are experiencing a severe headache.")
+
+    def add_nausea(self, severity):
+        """Add nausea effect to player."""
+        self.nausea_level += severity
+        print(f"Nausea level: {self.nausea_level}%")
+        if self.nausea_level > 50:
+            self.stamina -= 15  # Nausea reduces stamina
+            print("You feel nauseous, affecting your movement and stamina.")
+        if self.nausea_level >= 100:
+            print("You are severely nauseous and may vomit.")
+
+    def treat_nausea(self):
+        """Treat nausea with proper medical items (e.g., medicine)."""
+        self.nausea_level = 0
+        print("Nausea treated.")
+
+    def treat_headache(self):
+        """Treat headache with medication (e.g., painkillers)."""
+        self.headache_level = 0
+        print("Headache treated.")
+
+    def collect_item(self, item):
+        """Add item to inventory"""
+        self.inventory.append(item)
+        print(f"Collected {item.name}")
+
+    def is_healthy(self):
+        """Check if the player is healthy enough to continue."""
+        if self.health <= 0 or self.stamina <= 0:
+            print("You are too weak to continue.")
+            return False
+        return True
+
+class Item:
+    def __init__(self, name):
+        self.name = name
+
+class MedicalItem(Item):
+    def __init__(self, name, effect):
+        super().__init__(name)
+        self.effect = effect
+
+    def use(self, player):
+        """Use the medical item to affect the player's health."""
+        print(f"Using {self.name}...")
+        player.health += self.effect
+        if player.health > 100:
+            player.health = 100
+        print(f"Health restored by {self.effect}. Current health: {player.health}%")
+
+class Food(Item):
+    def __init__(self, name):
+        super().__init__(name)
+
+class Water(Item):
+    def __init__(self, name):
+        super().__init__(name)
+
+# Example initialization
+player = Player()
+painkillers = MedicalItem("Painkillers", 10)
+water = Water("Bottled Water")
+canned_food = Food("Canned Food")
+
+# Player collects items
+player.collect_item(painkillers)
+player.collect_item(water)
+player.collect_item(canned_food)
+
+# Simulate using items
+player.eat(canned_food)
+player.drink(water)
+
+# Simulate health degradation and sickness
+player.add_nausea(60)
+player.add_headache(40)
+player.update_stamina()
+
+# Player takes a nap
+player.sleep(5)
+player.rest()
